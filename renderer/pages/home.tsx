@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import Typography from "@material-ui/core/Typography";
 import { Client, register } from "discord-rpc";
 import { Formik, Form, Field } from "formik";
-import { Button, LinearProgress } from "@material-ui/core";
+import { Button, Checkbox, LinearProgress } from "@material-ui/core";
 import { Alert, AlertTitle } from "@material-ui/lab";
 import { TextField } from "formik-material-ui";
 import { DropzoneArea, DropzoneDialog } from "material-ui-dropzone";
@@ -47,10 +47,17 @@ const Home: FC = () => {
 		transport: "ipc",
 	});
 	const [files, setFile] = useState<File[]>();
+	const [isParty, setIsParty] = useState<boolean>();
 	const [imgUrl, setImgUrl] = useState<string>();
 
 	const dropzoneSave = (_files: File[]) => setFile(_files);
 	const dropzoneClose = () => setOpen(false);
+
+	const destroy = async () => {
+		await client.connect(clientId);
+
+		client.clearActivity();
+	};
 
 	const update = async (
 		values: Values,
@@ -59,6 +66,24 @@ const Home: FC = () => {
 		const startTimestamp = new Date();
 		await client.connect(clientId);
 
+		const party = {
+			partyMax: values.max || 1,
+			partySize: values.current || 1,
+		};
+
+		if (isParty) {
+			return client.setActivity({
+				details: values.title,
+				state: values.subtitle || "  ",
+				startTimestamp,
+				partyId: "2333",
+				largeImageKey: "637405957010986350",
+				smallImageKey: "sfdasdfasdf",
+				instance: true,
+				...party,
+			});
+		}
+
 		client.setActivity({
 			details: values.title,
 			state: values.subtitle || "  ",
@@ -66,9 +91,7 @@ const Home: FC = () => {
 			partyId: "2333",
 			largeImageKey: "sfdasdfasdf",
 			smallImageKey: "sfdasdfasdf",
-			partyMax: values.max || 1,
-			partySize: values.current || 1,
-			instance: false,
+			instance: true,
 		});
 	};
 
@@ -131,22 +154,26 @@ const Home: FC = () => {
 								name="subtitle"
 								label="Subtitle"
 							/>
-							<br />
-							<Field
-								style={{ marginTop: 10 }}
-								component={TextField}
-								type="number"
-								name="current"
-								label="Current"
-							/>
-							<br />
-							<Field
-								style={{ marginTop: 10 }}
-								component={TextField}
-								type="number"
-								name="max"
-								label="Max"
-							/>
+							{isParty && (
+								<>
+									<br />
+									<Field
+										style={{ marginTop: 10 }}
+										component={TextField}
+										type="number"
+										name="current"
+										label="Current"
+									/>
+									<br />
+									<Field
+										style={{ marginTop: 10 }}
+										component={TextField}
+										type="number"
+										name="max"
+										label="Max"
+									/>
+								</>
+							)}
 							{isSubmitting && <LinearProgress />}
 							<br />
 							<Button
@@ -158,9 +185,24 @@ const Home: FC = () => {
 							>
 								Update
 							</Button>
+							<br />
+							<Button
+								style={{ marginTop: 15 }}
+								variant="contained"
+								color="secondary"
+								disabled={isSubmitting}
+								onClick={destroy}
+							>
+								Clear
+							</Button>
 						</Form>
 					)}
 				</Formik>
+				<Checkbox
+					title="Show Party"
+					color="primary"
+					onChange={(_, checked) => setIsParty(checked)}
+				/>
 				{showSuccess && (
 					<Alert
 						variant="filled"
